@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statute Editor</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .username {
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .page-title {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            margin-top: 0;
+        }
+
+        .statute-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .statute-item {
+            background: #f8f9fa;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .statute-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .statute-link {
+            display: block;
+            padding: 20px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .statute-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #007bff;
+        }
+
+        .statute-act {
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .no-statutes {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        .stats-bar {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #e9ecef;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .welcome-message {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            color: #1565c0;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>📜 Statute Database Editor</h1>
+            <div class="user-info">
+                <span class="username">Welcome, {{ user.username }}!</span>
+                <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="welcome-message">
+            <strong>👋 Hello {{ user.username }}!</strong> You're now logged into the Statute Database Editor. 
+            All your actions will be logged for audit purposes.
+        </div>
+
+        <h2 class="page-title">Available Statutes</h2>
+        
+        {% if statutes.length > 0 %}
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-number">{{ statutes.length }}</div>
+                <div class="stat-label">Total Statutes</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ user.username }}</div>
+                <div class="stat-label">Current User</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="currentTime"></div>
+                <div class="stat-label">Current Time</div>
+            </div>
+        </div>
+
+        <ul class="statute-list">
+            {% for statute in statutes %}
+            <li class="statute-item">
+                <a href="/statute/{{ statute.id }}" class="statute-link">
+                    <div class="statute-name">{{ statute.name }}</div>
+                    {% if statute.act_no %}
+                    <div class="statute-act">Act No: {{ statute.act_no }}</div>
+                    {% endif %}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="no-statutes">
+            No statutes found in the database.
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString();
+        }
+        
+        // Update time immediately and then every second
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // Logout function
+        async function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                try {
+                    const response = await fetch('/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        window.location.href = data.redirect || '/auth/login';
+                    } else {
+                        alert('Logout failed. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    alert('Logout failed. Please try again.');
+                }
+            }
+        }
+
+        // Add some visual feedback for statute links
+        document.querySelectorAll('.statute-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Add a small delay to show the click effect
+                e.preventDefault();
+                this.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    window.location.href = this.href;
+                }, 150);
+            });
+        });
+    </script>
+</body>
+</html>

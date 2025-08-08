@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit {{ tree.name }}</title>
+    <link rel="stylesheet" href="/css/tree-editor.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>📜 {{ tree.name }}</h1>
+            <div class="header-actions">
+                <div class="user-badge">
+                    <span class="user-icon">👤</span>
+                    <span class="username">{{ user.username }}</span>
+                </div>
+                <button class="btn btn-secondary" onclick="window.location.href='/'">← Back to List</button>
+                <button class="btn btn-info btn-sm" onclick="showStatistics()">📊 Stats</button>
+                <button class="btn btn-primary" onclick="saveStatute()">💾 Save Changes</button>
+                <button class="btn btn-secondary btn-sm" onclick="logout()" title="Logout">🚪</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container" id="mainContainer">
+        <div class="tree-container">
+            <div class="tree-header">
+                <h2>🌲 Structure</h2>
+                <div class="tree-controls">
+                    <!-- Enhanced controls will be inserted here by JavaScript -->
+                </div>
+            </div>
+            <div class="tree" id="tree-root"></div>
+        </div>
+
+        <div class="editor-container">
+            <div class="editor-header">
+                <h2>✏️ Editor</h2>
+                <div class="editor-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="validateCurrentNode()" title="Validate current item">
+                        ✓ Validate
+                    </button>
+                </div>
+            </div>
+            <div class="editor-content" id="editor">
+                <div class="no-selection">
+                    <div style="text-align: center; padding: 40px;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">📝</div>
+                        <h3>Select an item to edit</h3>
+                        <p style="color: #666; margin-top: 10px;">
+                            Choose any component from the structure tree on the left to start editing its properties.
+                        </p>
+                        <div style="margin-top: 20px;">
+                            <button class="btn btn-primary" onclick="showAddDialog()">
+                                ➕ Add New Component
+                            </button>
+                        </div>
+                        <div style="margin-top: 20px; font-size: 12px; color: #999;">
+                            💡 <strong>Quick Tips:</strong><br>
+                            • Right-click items for more options<br>
+                            • Use Ctrl+N to add components quickly<br>
+                            • Press F2 to rename selected items<br>
+                            • All changes are logged for audit purposes
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-info">
+            <div class="status-item">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">Ready</span>
+            </div>
+            <div class="status-item">
+                <span>User: </span>
+                <span>{{ user.username }}</span>
+            </div>
+            <div class="status-item">
+                <span>Total Items: </span>
+                <span id="itemCount">0</span>
+            </div>
+            <div class="status-item">
+                <span>New Items: </span>
+                <span id="newItemCount">0</span>
+            </div>
+            <div class="status-item">
+                <span>Last Saved: </span>
+                <span id="lastSaved">Never</span>
+            </div>
+        </div>
+        <div class="status-actions">
+            <button class="btn btn-sm btn-secondary" onclick="exportToJson()" title="Export structure as JSON">
+                📄 Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Preview Panel -->
+    <button class="preview-toggle" onclick="togglePreview()">
+        📋 Preview
+    </button>
+    <div class="preview-panel" id="previewPanel">
+        <div class="editor-header">
+            <h2>📋 Document Preview</h2>
+            <button class="btn btn-sm btn-secondary" onclick="togglePreview()">✕</button>
+        </div>
+        <div class="preview-content" id="previewContent">
+            <div style="padding: 20px; text-align: center; color: #666;">
+                <div style="font-size: 32px; margin-bottom: 15px;">📋</div>
+                <p>Document preview will appear here</p>
+                <button class="btn btn-primary btn-sm" onclick="generatePreview()">
+                    Generate Preview
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <!-- Context menu items will be dynamically generated -->
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div>Saving changes...</div>
+    </div>
+
+    <!-- User Info Modal -->
+    <div id="userModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>👤 User Information</h3>
+                <button class="modal-close" onclick="closeUserModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Username:</strong> {{ user.username }}</p>
+                <p><strong>Session Status:</strong> <span style="color: green;">Active</span></p>
+                <p><strong>Current Document:</strong> {{ tree.name }}</p>
+                <p><strong>Login Time:</strong> <span id="loginTime">Loading...</span></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeUserModal()">Close</button>
+                <button class="btn btn-danger" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .user-badge {
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .user-badge:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .user-icon {
+            margin-right: 8px;
+        }
+
+        .username {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .modal {
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+    </style>
+
+    <script>
+        // Initial tree data
+        let treeData = {{ treeJson | safe }};
+        let currentNode = null;
+        let deletedItems = [];
+        let draggedNode = null;
+        
+        // Enhanced status tracking
+        let lastSaveTime = null;
+        let previewVisible = false;
+        
+        // Initialize enhanced features
+        document.addEventListener('DOMContentLoaded', function() {
+            renderTree();
+            updateStatus();
+            initializeEnhancedFeatures();
+            
+            // Update status every 10 seconds
+            setInterval(updateStatus, 10000);
+            
+            // Set login time
+            document.getElementById('loginTime').textContent = new Date().toLocaleString();
+            
+            // Add click handler for user badge
+            document.querySelector('.user-badge').addEventListener('click', showUserModal);
+        });
+        
+        // Enhanced status management
+        function updateStatus() {
+            const stats = calculateTreeStats(treeData);
+            document.getElementById('itemCount').textContent = stats.totalNodes;
+            document.getElementById('newItemCount').textContent = stats.unsavedNodes;
+            
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            if (stats.unsavedNodes > 0) {
+                indicator.className = 'status-indicator warning';
+                statusText.textContent = 'Unsaved changes';
+            } else {
+                indicator.className = 'status-indicator';
+                statusText.textContent = 'Ready';
+            }
+            
+            // Update last saved
+            const lastSavedEl = document.getElementById('lastSaved');
+            if (lastSaveTime) {
+                const timeDiff = Date.now() - lastSaveTime;
+                const minutes = Math.floor(timeDiff / 60000);
+                if (minutes < 1) {
+                    lastSavedEl.textContent = 'Just now';
+                } else if (minutes < 60) {
+                    lastSavedEl.textContent = `${minutes}m ago`;
+                } else {
+                    lastSavedEl.textContent = new Date(lastSaveTime).toLocaleTimeString();
+                }
+            } else {
+                lastSavedEl.textContent = 'Never';
+            }
+        }
+        
+        // Enhanced features initialization
+        function initializeEnhancedFeatures() {
+            
+            // Auto-save reminder
+            setInterval(() => {
+                if (unsavedChanges) {
+                    const timeSinceLastSave = lastSaveTime ? Date.now() - lastSaveTime : Infinity;
+                    if (timeSinceLastSave > 300000) { // 5 minutes
+                        showMessage('💡 Don\'t forget to save your changes!', 'info');
+                    }
+                }
+            }, 60000); // Check every minute
+        }
+        
+        function showStatistics() {
+            const stats = calculateTreeStats(treeData);
+            const message = `Document Statistics:
+            
+📊 Total Components: ${stats.totalNodes}
+🆕 New (Unsaved): ${stats.unsavedNodes}
+📝 With Content: ${stats.nodesWithContent}
+📏 Maximum Depth: ${stats.maxDepth}
+💾 Status: ${unsavedChanges ? 'Unsaved Changes' : 'All Changes Saved'}
+🕒 Last Modified: ${lastSaveTime ? new Date(lastSaveTime).toLocaleString() : 'Never'}
+👤 Current User: {{ user.username }}`;
+            
+            alert(message);
+        }
+        
+        function togglePreview() {
+            const panel = document.getElementById('previewPanel');
+            const container = document.getElementById('mainContainer');
+            
+            previewVisible = !previewVisible;
+            
+            if (previewVisible) {
+                panel.classList.add('open');
+                container.classList.add('with-preview');
+                generatePreview();
+            } else {
+                panel.classList.remove('open');
+                container.classList.remove('with-preview');
+            }
+        }
+        
+        function generatePreview() {
+            const content = document.getElementById('previewContent');
+            content.innerHTML = '<div style="padding: 20px;"><div class="spinner" style="margin: 0 auto;"></div><p style="text-align: center; margin-top: 10px;">Generating preview...</p></div>';
+            
+            // Simulate preview generation
+            setTimeout(() => {
+                const preview = generateDocumentPreview(treeData);
+                content.innerHTML = preview;
+            }, 1000);
+        }
+        
+        function generateDocumentPreview(node, level = 0) {
+            let html = '';
+            const indent = '  '.repeat(level);
+            
+            if (level === 0) {
+                html += '<div style="padding: 20px; font-family: serif; line-height: 1.6;">';
+                html += `<h1 style="text-align: center; margin-bottom: 30px;">${node.name}</h1>`;
+                if (node.act_no) html += `<p style="text-align: center; font-style: italic; margin-bottom: 20px;">Act No: ${node.act_no}</p>`;
+                if (node.date) html += `<p style="text-align: center; margin-bottom: 30px;">Date: ${node.date}</p>`;
+                if (node.preface) html += `<div style="margin-bottom: 30px; font-style: italic;">${node.preface}</div>`;
+            } else {
+                const tag = level === 1 ? 'h2' : level === 2 ? 'h3' : level === 3 ? 'h4' : 'h5';
+                html += `<${tag} style="margin-top: 25px; margin-bottom: 15px;">${getDisplayName(node)}</${tag}>`;
+                if (node.content) {
+                    html += `<div style="margin: 15px 0; padding: 10px; background: #f9f9f9; border-left: 3px solid #ccc;">${node.content}</div>`;
+                }
+            }
+            
+            if (node.children) {
+                node.children.forEach(child => {
+                    html += generateDocumentPreview(child, level + 1);
+                });
+            }
+            
+            if (level === 0) {
+                html += '</div>';
+            }
+            
+            return html;
+        }
+        
+        function validateCurrentNode() {
+            if (!currentNode) {
+                showMessage('Please select a node to validate.', 'info');
+                return;
+            }
+            
+            const errors = validateNodeHierarchy(currentNode, findParentNode(treeData, currentNode));
+            
+            if (errors.length === 0) {
+                showMessage(`✅ "${currentNode.name}" is valid.`, 'success');
+            } else {
+                const message = `❌ Validation errors for "${currentNode.name}":\n\n${errors.join('\n')}`;
+                alert(message);
+            }
+        }
+        
+        function exportToJson() {
+            const dataStr = JSON.stringify(treeData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${treeData.name.replace(/[^a-z0-9]/gi, '_')}_structure.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            URL.revokeObjectURL(url);
+            showMessage('Structure exported successfully!', 'success');
+        }
+        
+        // User modal functions
+        function showUserModal() {
+            document.getElementById('userModal').style.display = 'flex';
+        }
+        
+        function closeUserModal() {
+            document.getElementById('userModal').style.display = 'none';
+        }
+        
+        // Logout function
+        async function logout() {
+            if (unsavedChanges) {
+                if (!confirm('You have unsaved changes. Are you sure you want to logout? All unsaved changes will be lost.')) {
+                    return;
+                }
+            }
+            
+            if (confirm('Are you sure you want to logout?')) {
+                try {
+                    const response = await fetch('/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        window.location.href = data.redirect || '/auth/login';
+                    } else {
+                        alert('Logout failed. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    alert('Logout failed. Please try again.');
+                }
+            }
+        }
+        
+        // Override save function to update last save time
+        const originalSaveStatute = saveStatute;
+        saveStatute = async function() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+            
+            try {
+                const result = await originalSaveStatute();
+                if (result !== false) { // If save was successful
+                    lastSaveTime = Date.now();
+                    updateStatus();
+                    showMessage('✅ Changes saved successfully! All actions have been logged.', 'success');
+                }
+                return result;
+            } catch (error) {
+                showMessage('❌ Save failed: ' + error.message, 'error');
+                throw error;
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        };
+        
+        // Close modal when clicking outside
+        document.getElementById('userModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUserModal();
+            }
+        });
+        
+        // Add keyboard shortcut for logout (Ctrl+Shift+L)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'L') {
+                e.preventDefault();
+                logout();
+            }
+        });
+    </script>
+    <script src="/js/tree-editor.js"></script>
+</body>
+</html>
