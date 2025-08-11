@@ -501,5 +501,389 @@
         });
     </script>
     <script src="/js/tree-editor.js"></script>
+    <!-- Add this modal HTML to your index.html, right before the closing </body> tag -->
+
+<!-- New Statute Modal -->
+<div id="newStatuteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📜 Create New Statute</h3>
+            <span class="close" onclick="closeNewStatuteModal()">&times;</span>
+        </div>
+        <form id="newStatuteForm" onsubmit="createNewStatute(event)">
+            <div class="form-group">
+                <label for="statuteName">Statute Name *</label>
+                <input type="text" id="statuteName" name="name" required 
+                       placeholder="e.g., The Employment Protection Act">
+            </div>
+            
+            <div class="form-group">
+                <label for="actNo">Act Number</label>
+                <input type="text" id="actNo" name="act_no" 
+                       placeholder="e.g., Act No. 55 of 1998">
+            </div>
+            
+            <div class="form-group">
+                <label for="statuteDate">Date</label>
+                <input type="date" id="statuteDate" name="date">
+            </div>
+            
+            <div class="form-group">
+                <label for="preface">Preface</label>
+                <textarea id="preface" name="preface" rows="4" 
+                          placeholder="Enter the statute preface or preamble..."></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closeNewStatuteModal()">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-primary" id="createStatuteBtn">
+                    📜 Create Statute
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.close {
+    color: rgba(255,255,255,0.8);
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close:hover {
+    color: white;
+}
+
+#newStatuteForm {
+    padding: 25px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-secondary {
+    background: #f8f9fa;
+    color: #666;
+    border: 1px solid #dee2e6;
+}
+
+.btn-secondary:hover {
+    background: #e9ecef;
+}
+
+/* Add New Statute Button */
+.add-statute-btn {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 15px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    margin-bottom: 25px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+}
+
+.add-statute-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(40, 167, 69, 0.3);
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+// JavaScript functions for the modal
+function openNewStatuteModal() {
+    document.getElementById('newStatuteModal').style.display = 'block';
+    document.getElementById('statuteName').focus();
+}
+
+function closeNewStatuteModal() {
+    document.getElementById('newStatuteModal').style.display = 'none';
+    document.getElementById('newStatuteForm').reset();
+}
+
+// Close modal when clicking outside of it
+window.onclick = function(event) {
+    const modal = document.getElementById('newStatuteModal');
+    if (event.target == modal) {
+        closeNewStatuteModal();
+    }
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeNewStatuteModal();
+    }
+});
+
+async function createNewStatute(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    const createBtn = document.getElementById('createStatuteBtn');
+    
+    // Show loading state
+    createBtn.disabled = true;
+    createBtn.innerHTML = '<div class="loading-spinner"></div>Creating...';
+    
+    try {
+        const response = await fetch('/api/statute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: formData.get('name'),
+                act_no: formData.get('act_no') || null,
+                date: formData.get('date') || null,
+                preface: formData.get('preface') || null
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            // Success! Close modal and refresh page
+            closeNewStatuteModal();
+            
+            // Show success message
+            showNotification('✅ Statute created successfully!', 'success');
+            
+            // Refresh the page after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            // Handle errors
+            throw new Error(result.message || 'Failed to create statute');
+        }
+    } catch (error) {
+        console.error('Error creating statute:', error);
+        showNotification('❌ Error: ' + error.message, 'error');
+    } finally {
+        // Reset button state
+        createBtn.disabled = false;
+        createBtn.innerHTML = '📜 Create Statute';
+    }
+}
+
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    // Add styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 6px;
+        color: white;
+        font-weight: 600;
+        z-index: 10000;
+        animation: slideInRight 0.3s ease-out;
+        max-width: 400px;
+        word-wrap: break-word;
+    `;
+    
+    // Set background color based on type
+    if (type === 'success') {
+        notification.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+    } else if (type === 'error') {
+        notification.style.background = 'linear-gradient(135deg, #dc3545 0%, #e83e8c 100%)';
+    } else {
+        notification.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    }
+    
+    // Add animation keyframes if not already added
+    if (!document.getElementById('notificationStyles')) {
+        const style = document.createElement('style');
+        style.id = 'notificationStyles';
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    opacity: 0;
+                    transform: translateX(100%);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+            @keyframes slideOutRight {
+                from {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+                to {
+                    opacity: 0;
+                    transform: translateX(100%);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Remove after 4 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease-in forwards';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 4000);
+}
+</script>
 </body>
 </html>

@@ -710,6 +710,169 @@ app.get('/api/user', requireAuth, (req, res) => {
   });
 });
 
+// Add this API endpoint to your server.js file, after the existing API endpoints
+
+// API endpoint to create a new statute
+app.post('/api/statute', requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    const { name, act_no, date, preface } = req.body;
+    const userId = req.session.userId;
+    
+    // Validate required fields
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Statute name is required'
+      });
+    }
+    
+    // Check if statute name already exists
+    const existingStatute = await client.query(
+      'SELECT id FROM statute WHERE name = $1',
+      [name.trim()]
+    );
+    
+    if (existingStatute.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'A statute with this name already exists'
+      });
+    }
+    
+    // Check if act_no already exists (if provided)
+    if (act_no && act_no.trim().length > 0) {
+      const existingActNo = await client.query(
+        'SELECT id FROM statute WHERE act_no = $1',
+        [act_no.trim()]
+      );
+      
+      if (existingActNo.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'A statute with this act number already exists'
+        });
+      }
+    }
+    
+    // Prepare values for insertion
+    const statuteName = name.trim();
+    const statuteActNo = act_no && act_no.trim().length > 0 ? act_no.trim() : null;
+    const statuteDate = date && date.trim().length > 0 ? date : null;
+    const statutePreface = preface && preface.trim().length > 0 ? preface.trim() : null;
+    
+    // Insert new statute
+    const insertQuery = `
+      INSERT INTO statute (name, act_no, date, preface, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      RETURNING id, name, act_no, date, preface
+    `;
+    
+    const result = await client.query(insertQuery, [
+      statuteName,
+      statuteActNo,
+      statuteDate,
+      statutePreface
+    ]);
+    
+    const newStatute = result.rows[0];
+    
+    await client.query('COMMIT');
+    
+    // Log the creation
+    await logUserAction(userId, 'statute', newStatute.id, 'CREATE');
+    
+    console.log(`New statute created: ID ${newStatute.id}, Name: "${newStatute.name}" by user ${userId}`);
+    
+    res.json({
+      success: true,
+      message: 'Statute created successfully',
+      statute: newStatute
+    });
+    
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error creating statute:', error);
+    
+    // Handle specific database errors
+    let errorMessage = 'Failed to create statute';
+    
+    if (error.code === '23505') { // Unique constraint violation
+      if (error.constraint === 'statute_name_key') {
+        errorMessage = 'A statute with this name already exists';
+      } else if (error.constraint === 'statute_act_no_key') {
+        errorMessage = 'A statute with this act number already exists';
+      } else {
+        errorMessage = 'Duplicate value detected';
+      }
+    } else if (error.code === '23514') { // Check constraint violation
+      errorMessage = 'Invalid data provided';
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: errorMessage
+    });
+  } finally {
+    client.release();
+  }
+});
+
+// API endpoint to validate statute data before creation (optional)
+app.post('/api/statute/validate', requireAuth, async (req, res) => {
+  try {
+    const { name, act_no } = req.body;
+    const errors = [];
+    
+    if (!name || name.trim().length === 0) {
+      errors.push('Statute name is required');
+    } else if (name.trim().length > 255) {
+      errors.push('Statute name is too long (maximum 255 characters)');
+    }
+    
+    if (act_no && act_no.trim().length > 100) {
+      errors.push('Act number is too long (maximum 100 characters)');
+    }
+    
+    // Check for duplicates
+    if (name && name.trim().length > 0) {
+      const existingName = await pool.query(
+        'SELECT id FROM statute WHERE name = $1',
+        [name.trim()]
+      );
+      
+      if (existingName.rows.length > 0) {
+        errors.push('A statute with this name already exists');
+      }
+    }
+    
+    if (act_no && act_no.trim().length > 0) {
+      const existingActNo = await pool.query(
+        'SELECT id FROM statute WHERE act_no = $1',
+        [act_no.trim()]
+      );
+      
+      if (existingActNo.rows.length > 0) {
+        errors.push('A statute with this act number already exists');
+      }
+    }
+    
+    res.json({
+      valid: errors.length === 0,
+      errors: errors
+    });
+    
+  } catch (error) {
+    console.error('Validation error:', error);
+    res.status(500).json({
+      valid: false,
+      errors: ['Validation failed due to server error']
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
   console.log('Authentication enabled - users must log in to access the application');
