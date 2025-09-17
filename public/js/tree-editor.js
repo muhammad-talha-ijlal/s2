@@ -2,7 +2,7 @@
 
 let nextTempId = -1;
 let operationHistory = [];
-let maxHistorySize = 50;
+let maxHistorySize = 5000;
 let unsavedChanges = false;
 
 // Enhanced state management
@@ -354,16 +354,16 @@ function createNewNode(type, parent) {
 function generateSmartName(type, parent) {
     const siblingCount = parent.children ? parent.children.filter(c => c.type === type).length : 0;
     const baseNames = {
-        'part': 'General',
-        'sch_part': 'Schedule',
-        'chapter': 'Definitions',
-        'sch_chapter': 'Schedule Chapter',
-        'set': 'General Provisions',
-        'sch_set': 'Schedule Set',
-        'section': 'General',
-        'sch_section': 'Schedule Section',
-        'subsection': 'Provision',
-        'sch_subsection': 'Schedule Provision'
+        'part': 'Pseudo',
+        'sch_part': 'Pseudo',
+        'chapter': 'Pseudo',
+        'sch_chapter': 'Pseudo',
+        'set': 'Pseudo',
+        'sch_set': 'Pseudo',
+        'section': 'Pseudo',
+        'sch_section': 'Pseudo',
+        'subsection': 'Pseudo',
+        'sch_subsection': 'Pseudo'
     };
     
     const baseName = baseNames[type] || formatTypeName(type);
@@ -1412,13 +1412,6 @@ function validateNodeHierarchy(node, parent = null) {
         const validChildTypes = getValidChildTypes(parent.type);
         if (!validChildTypes.includes(node.type)) {
             errors.push(`Invalid child type ${node.type} for parent ${parent.type} in "${node.name}"`);
-        }
-    }
-    
-    // Check required fields
-    if (!node.name || node.name.trim() === '') {
-        if (node.type !== 'subsection') {
-        errors.push(`Missing name for ${node.type} node`);
         }
     }
     
