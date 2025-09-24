@@ -1373,7 +1373,15 @@ async function saveStatute() {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        const result = await response.json();
+        const text = await response.text(); // read raw response first
+        console.log('Raw response:', text);
+
+        let result;
+        try {
+            result = JSON.parse(text);
+        } catch (e) {
+            throw new Error(`Server did not return JSON. Status: ${response.status}. Response: ${text.slice(0,200)}...`);
+        }
         
         if (result.success) {
             showMessage('✅ Statute saved successfully!', 'success');
