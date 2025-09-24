@@ -19,6 +19,7 @@ app.use(session({
   secret: process.env.SECRET_KEY, // Change this to a secure random string in production
   resave: false,
   saveUninitialized: false,
+   rolling: true, // resets maxAge on every request
   cookie: {
     secure: false, // Set to true if using HTTPS
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
